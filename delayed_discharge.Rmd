@@ -8,15 +8,34 @@ date: "2026-02-04"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r loading-packages}
 
-pacman::p_load(readr)
+pacman::p_load(readr, magrittr, dplyr, ggplot2, sf, lubridate)
+
+```
+
+```{r downloading-data}
+
+delayed_discharge_data <- read_csv("https://www.opendata.nhs.scot/dataset/52591cba-fd71-48b2-bac3-e71ac108dfee/resource/fd354e4b-6211-48ba-8e4f-8356a5ed4215/download/2025-12_delayed-discharge-beddays-health-board.csv") %>% 
+  janitor::clean_names() %>% 
+  mutate(month_of_delay = parse_date_time(month_of_delay, "ym"),#changing format
+         year = as.numeric(year(month_of_delay)),)
+
+hb_names <- read_csv("https://www.opendata.nhs.scot/dataset/9f942fdb-e59e-44f5-b534-d6e17229cc7b/resource/652ff726-e676-4a20-abda-435b98dd7bdc/download/hb14_hb19.csv")
 
 ```
 
 ```{r}
 
-delayed_discharge_data <- read_csv("https://www.opendata.nhs.scot/dataset/52591cba-fd71-48b2-bac3-e71ac108dfee/resource/fd354e4b-6211-48ba-8e4f-8356a5ed4215/download/2025-12_delayed-discharge-beddays-health-board.csv")
+delays_hb_month <- delayed_discharge_data %>% 
+  filter(reason_for_delay == "All Delay Reasons"|
+           reason_for_delay == "Health and Social Care Reasons",
+         age_group == "18plus") %>% 
+  left_join(hb_names, join_by("hbt" == "HB"))
+  
+delays_hb_month %>% 
+  ggplot(aes(x = month_of_delay, y = number_of_delayed_bed_days, colour = reason_for_delay)) +
+  geom_line() +
+  facet_wrap(~HBName, scales = "free")
 
 ```
-
